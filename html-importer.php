@@ -137,7 +137,8 @@ class HTML_Import extends WP_Importer {
 	
 	function fix_internal_links( $content, $id ) {		
 		// find all href attributes
-		preg_match_all( '/<a[^>]* href=[\'"]?([^>\'" ]+ )/i', $content, $matches );
+		$regexp='/<a[^>]*href=[\'"]?([^>\'"]+)/i';
+		preg_match_all( $regexp, $content, $matches );
 		for ( $i=0; $i<count( $matches[0] ); $i++ ) {
 			$hrefs[] = $matches[1][$i];
 		}
@@ -825,14 +826,18 @@ class HTML_Import extends WP_Importer {
 		$update = false;
 		
 		// find all src attributes
-		preg_match_all( '/<img[^>]* src=[\'"]?([^>\'" ]+)/i', $post->post_content, $matches );
+		$regexp = '/< *img[^>]*src *= *["\']?([^"\']*)/i';
+		preg_match_all($regexp, $post->post_content, $matches );
 		for ( $i=0; $i<count( $matches[0] ); $i++ ) {
 			$srcs[] = $matches[1][$i];
 		}
 		
 		// also check custom fields
 		$custom = get_post_meta( $id, '_ise_old_sidebar', true );
-		preg_match_all( '/<img[^>]* src=[\'"]?([^>\'" ]+)[\'"]/i', $custom, $matches );
+		
+		$regexp = '/<img[^>]* src=[\'"]?([^>\'" ]+)/i';
+		preg_match_all($regexp, $custom, $matches );
+		
 		for ( $i=0; $i<count( $matches[0] ); $i++ ) {
 			$srcs[] = $matches[1][$i];
 		}
@@ -861,7 +866,10 @@ class HTML_Import extends WP_Importer {
 				}
 				// intersect base path and src, or just clean up junk
 				$_imgpath = $this->remove_dot_segments( $imgpath );
-			 
+				
+				// replace all file spaces with underscores (requires pre-processing of filenames to do same)
+				$imgpath = str_replace(' ', '_', $imgpath);
+
 				//  load the image from $imgpath
 				$imgid = $this->handle_import_media_file( $_imgpath, $id );
 				if ( is_wp_error( $imgid ) )
@@ -871,7 +879,6 @@ class HTML_Import extends WP_Importer {
 			
 					//  replace paths in the content
 					if ( !is_wp_error( $imgpath ) ) {
-
 						$content = str_replace( $src, $imgpath, $content );
 						$custom = str_replace( $src, $imgpath, $custom );
 						$update = true;
